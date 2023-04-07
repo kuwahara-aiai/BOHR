@@ -1,0 +1,164 @@
+【EC2にPythonをインストール】
+
+・OSのシステムにPython3をインストール
+sudo yum install python3 -y
+
+・Python3がインストールされているかチェック
+yum list installed | grep python3
+
+・仮想環境作成
+python3 -m venv my_app/env
+
+・確認
+ls -l
+----------------
+drwxrwxr-x 3 ec2-user ec2-user    17 Jun  6 12:28 my_app
+----------------
+
+・バージョン確認
+python --version
+---------------
+Python 2.7.18
+---------------
+
+・仮想環境のアクティベート
+source ~/my_app/env/bin/activate
+※(env) [ec2-user@…]$でOK
+
+・バージョン確認(アクティベート後)
+python --version
+---------------
+Python 3.7.9
+---------------
+
+・pipコマンドを最新にアップロード
+pip install pip --upgrade
+
+・boto3のインストール
+pip install boto3
+
+・インストール済か確認
+pip list
+
+・ディアクティベート※終わりたい時
+deactivate
+
+・Pythonファイルの作成
+vi a.py
+
+▼a.py
+------------------------
+print('aiueo')
+------------------------
+
+・Pythonファイルの実行
+python a.py
+
+▼実行結果
+------------------------
+(env) [ec2-user@ip-10-1-1-10 ~]$ python a.py
+aiueo
+------------------------
+
+
+/////////////////////////////////////////////////////////////////////////////////
+【S3のファイル情報を取得】
+・boto3の動作確認
+vi bt3.py
+
+▼bt3.py
+------------------------
+import boto3
+
+# S3サービスにアクセスするs3オブジェクトを作成
+s3 = boto3.resource('s3')
+
+# S3リソースのバケットを所得し、名前を出力します。
+for bucket in s3.buckets.all():
+    print(bucket.name)
+------------------------
+
+・実行
+python bt3.py
+※権限がないためエラーになる
+
+エラー内容
+------------------------
+Traceback (most recent call last):
+  File "bt3.py", line 7, in <module>
+    for bucket in s3.buckets.all():
+：
+------------------------
+
+
+【セキュリティ認証情報の登録】
+aws configure
+-------------------
+AWS Access Key ID [None]: 【IAMで生成したアクセスキーのAccess Key ID】
+AWS Secret Access Key [None]: 【IAMで生成したアクセスキーのSecret Access Key】
+Default region name [None]: ap-northeast-1※東京リージョン
+Default output format [None]: json
+---------------------
+アジアパシフィック(東京)の場合：ap-northeast-1
+米国東部(オハイオ)の場合：us-east-2
+
+※注意※
+設定した内容は、~/.aws/内に「credentials」「config」が作成されるため、こちらで確認ができます。
+作成後にも編集可能なため間違えても大丈夫です。
+
+・改めて実行
+python bt3.py
+※自分が作成したバケット名が表示されていればOK
+
+
+/////////////////////////////////////////////////////////////////////////////////
+【実践演習「PandasデータフレームをcsvとしてS3に保存する」】
+
+・Pandasのインストール
+pip install pandas
+
+・インストールのチェック
+pip list
+--------------------------
+(env) [ec2-user@ip-10-1-1-10 ~]$ pip list
+Package         Version
+--------------- -------
+boto3           1.17.88
+botocore        1.20.88
+jmespath        0.10.0
+numpy           1.20.3
+pandas          1.2.4　←★これを確認する
+：
+--------------------------
+
+・Pythonファイルの作成
+vi bt3_pnds1.py
+
+bt3_pnds1.py
+------------------------------------
+import os
+import pandas as pd
+from io import StringIO
+import boto3
+
+BUCKET_NAME = 'bucket-kuwahara'
+S3_PATH = 'aaa'
+FILE_NAME = 'bbb.csv'
+
+df = pd.DataFrame([[1, 10], [2, 20], [3, 30]])
+
+upload_path = os.path.join(S3_PATH, FILE_NAME)
+
+csv_buffer = StringIO()
+df.to_csv(csv_buffer)
+s3 = boto3.resource('s3')
+s3.Object(BUCKET_NAME, upload_path).put(Body=csv_buffer.getvalue())
+
+print('ok!')
+------------------------------------
+
+
+【便利なviコマンド】
+・全行削除
+編集モードで「:%d」と入力
+

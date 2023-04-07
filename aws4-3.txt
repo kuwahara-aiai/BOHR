@@ -1,0 +1,142 @@
+■cronによる操作
+
+この例では「/home/ec2-user」の中に「py」ディレクトリを作っています。
+pythonファイルも、このpyディレクトリ内に作成しています。
+※問題ではこの「py」が「tanaka」として出題しています。
+
+例：cron1.pyの置き場所
+/home/ec2-user/py/cron1.py
+
+
+【ファイルへの書き込み】
+・Pythonファイルの作成
+vi cron1.py
+
+cron1.py
+------------------------------------
+f = open("/home/ec2-user/py/data.txt","a",encoding="utf-8")
+f.write("hello")
+f.write("\n")
+f.close()
+------------------------------------
+
+・Pythonファイルの実行
+python cron1.py
+
+
+・crontabの設定
+毎分cron1.pyを実行するように設定
+
+crontab -e
+
+viモードになるので以下を入力
+-------------------
+*/1 * * * * /user/bin/python3 /home/ec2-user/py/cron1.py
+-------------------
+*/1 * * * * （pythonのパス） （実行したファイルのパス）
+・Pythonのパスを調べる
+$ which python3
+/usr/bin/python3
+
+・実行したいファイルのパスを調べる
+$ readlink -f test.py
+/home/houtarou/test.py
+
+
+【S3上のファイルに書き込み】
+※S3の画面で「aaa」というフォルダを用意しておく
+※バケット名を控えておく
+
+・cron2.py作成
+vi cron2.py
+
+------------------------------------
+import os
+import boto3
+
+# S3の保存先の指定
+BUCKET_NAME = '★自分のバケット名を入力★'
+S3_PATH = 'aaa'
+FILE_NAME = 'cron.txt'
+
+# S3操作用オブジェクトの用意
+upload_path = os.path.join(S3_PATH, FILE_NAME)
+s3 = boto3.resource('s3')
+s3obj = s3.Object(BUCKET_NAME, upload_path)
+
+# 文字列→バイトデータへ変換
+str1 = "あいう"
+byte1 = str1.encode('utf-8')
+
+# Write(書き込み実行)
+s3obj.put(Body=byte1)
+
+print('ok!')
+------------------------------------
+
+
+
+【S3上のファイルの読み込み】
+
+・cron3.py作成
+vi cron3.py
+
+------------------------------------
+import os
+import boto3
+
+# S3の保存先の指定
+BUCKET_NAME = '★自分のバケット名を入力★'
+S3_PATH = 'aaa'
+FILE_NAME = 'cron.txt'
+
+# S3操作用オブジェクトの用意
+upload_path = os.path.join(S3_PATH, FILE_NAME)
+s3 = boto3.resource('s3')
+s3obj = s3.Object(BUCKET_NAME, upload_path)
+
+# Read(書きこまれた内容の取得と表示)
+response = s3obj.get()
+body1 = response['Body'].read()
+print(body1.decode('utf-8'))
+
+print('ok!')
+------------------------------------
+
+
+【S3上のファイルへの追記】
+
+・cron4.py作成
+vi cron4.py
+
+------------------------------------
+import os
+import boto3
+import datetime
+
+# S3の保存先の指定
+BUCKET_NAME = '★自分のバケット名を入力★'
+S3_PATH = 'aaa'
+FILE_NAME = 'cron.txt'
+
+# S3操作用オブジェクトの用意
+upload_path = os.path.join(S3_PATH, FILE_NAME)
+s3 = boto3.resource('s3')
+s3obj = s3.Object(BUCKET_NAME, upload_path)
+
+# Read(書きこまれた内容の取得と表示)
+response = s3obj.get()
+body1 = response['Body'].read()
+print(body1.decode('utf-8'))
+
+# 文字列→バイトデータへ変換
+str1 = "かきく\n"
+byte1 = str1.encode('utf-8')
+# 元々書きこまれていた内容の後ろに付け足す
+byte1 = body1 + byte1
+
+# Write(書き込み実行)
+s3obj.put(Body=byte1)
+
+print('ok!')
+------------------------------------
